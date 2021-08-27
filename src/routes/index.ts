@@ -1,26 +1,31 @@
 import { Request, Response, Router } from 'express';
-import passport from 'passport';
 import { User } from './../models/User';
-import { generatePassword } from '../utils/password';
+import { generatePassword, validatePassword } from '../utils/password';
 import isAuth from '../middlewares/auth/isAuth';
 import isAdmin from '../middlewares/auth/isAdmin';
+import { generateJWT } from '../utils/jwt';
 
 const router = Router();
 
-declare module 'express-session' {
-	interface SessionData {
-		viewCount: number;
-	}
-}
+router.post('/login', async (req, res) => {
+	const user = await User.findOne({ username: req.body.username });
 
-router.get('/', (req: Request, res: Response): void => {
-	if (!req.session.viewCount) req.session.viewCount = 1;
-	else req.session.viewCount += 1;
-	res.send(`Hello Typescript with Node.js!: ${req.session.viewCount}`);
-});
+	if (!user) return res.status(401).send('Invalid Username Or Password');
 
-router.post('/login', passport.authenticate('local'), (req, res) => {
-	res.send('login');
+	const isValid = await validatePassword(
+		req.body.password,
+		user.hashedPassword
+	);
+	if (!isValid) return res.status(401).send('Invalid Username Or Password');
+
+	const tokenObject = generateJWT(user);
+
+	return res
+		.cookie('jwt', tokenObject.token, {
+			httpOnly: true,
+			maxAge: tokenObject.expires,
+		})
+		.send('logged in!');
 });
 
 router.post('/register', async (req, res) => {
@@ -29,11 +34,9 @@ router.post('/register', async (req, res) => {
 	const hashedPassword = generatePassword(password);
 
 	const user = new User({ username, hashedPassword });
+	await user.save();
 
-	const savedUser = await user.save();
-	console.log(savedUser);
-
-	res.send('register done');
+	return res.send('register done');
 });
 
 router.get('/logout', (req, res) => {
@@ -44,10 +47,11 @@ router.get('/logout', (req, res) => {
 });
 
 router.get('/protected', isAuth, (req, res) => {
-	res.status(200).send('protected route!!');
+	console.log(req.isAuthenticated());
+	return res.status(200).send('protected route!!');
 });
-router.get('/admin', isAdmin, (req, res) => {
-	res.status(200).send('admin route!!');
+router.get('/admin', [isAuth, isAdmin], (req: Request, res: Response) => {
+	return res.status(200).send('admin route!!');
 });
 
 export default router;

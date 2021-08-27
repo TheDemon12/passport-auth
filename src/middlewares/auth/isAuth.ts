@@ -1,9 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import passport from 'passport';
+import { RequestHandler } from 'express';
 
-const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-	if (!req.isAuthenticated()) return res.status(401).send('Unauthorized');
-
-	next();
-};
-
-export default isAuthenticated;
+const isAuth: RequestHandler = passport.authenticate('jwt', { session: false });
+export default isAuth;

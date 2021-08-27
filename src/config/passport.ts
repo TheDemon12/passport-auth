@@ -1,29 +1,28 @@
 import passport from 'passport';
-import passportLocal from 'passport-local';
-import { User } from '../models/User';
-import { validatePassword } from './../utils/password';
+import { Request } from 'express';
+import passportJwt from 'passport-jwt';
+import { User, UserType } from '../models/User';
+import { getJwtSecretKey } from '../utils/jwt';
 
-interface UserType {
-	id: string;
-	username: string;
-	hashedPassword: string;
-	isAdmin: boolean;
-}
+const cookieExtractor = (
+	req: Request<{}, {}, { cookies?: { jwt?: string } }>
+) => {
+	if (req && req.cookies) return req.cookies['jwt'].split(' ')[1];
+	else return null;
+};
+
+var JwtOptions: passportJwt.StrategyOptions = {
+	jwtFromRequest: cookieExtractor,
+	secretOrKey: getJwtSecretKey(),
+};
 
 const verifyCallback = async (
-	username: string,
-	password: string,
+	jwtPayload: { sub: string },
 	done: (err: any, user?: UserType | false) => void
 ) => {
 	try {
-		const user: UserType = await User.findOne({
-			username,
-		});
-
+		const user: UserType = await User.findById(jwtPayload.sub);
 		if (!user) return done(null, false);
-
-		const isValid = await validatePassword(password, user.hashedPassword);
-		if (!isValid) return done(null, false);
 
 		return done(null, user);
 	} catch (err) {
@@ -31,8 +30,7 @@ const verifyCallback = async (
 	}
 };
 
-const strategy = new passportLocal.Strategy(verifyCallback);
-
+const strategy = new passportJwt.Strategy(JwtOptions, verifyCallback);
 passport.use(strategy);
 
 //@ts-ignore
