@@ -1,26 +1,31 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import passport from 'passport';
+import cookieParser from 'cookie-parser';
+import morgan from 'morgan';
+import cors from 'cors';
+
 import { connectToDatabase } from './config/database';
-// import { mongoSession } from './config/mongoConnect';
 import routes from './routes';
 import './config/passport';
-import passport from 'passport';
-import morgan from 'morgan';
-import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
 const app = express();
 
+app.use(
+	cors({
+		credentials: true,
+		origin: 'http://localhost:5500',
+	})
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan('tiny'));
 
 connectToDatabase();
-// app.use(mongoSession);
 app.use(passport.initialize());
-// app.use(passport.session());
 app.use(routes);
 
 const PORT = process.env.PORT || 3000;

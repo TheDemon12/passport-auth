@@ -7,6 +7,8 @@ import { generateJWT } from '../utils/jwt';
 
 const router = Router();
 
+router.get('/', (req, res) => res.send('Api home'));
+
 router.post('/login', async (req, res) => {
 	const user = await User.findOne({ username: req.body.username });
 
