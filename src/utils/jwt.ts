@@ -13,7 +13,6 @@ export const generateJWT = function (user: UserType) {
 	};
 
 	const jwtSecret = getJwtSecretKey();
-	if (!jwtSecret) throw new Error('No JWT Key Found!');
 
 	const signedToken = jwt.sign(payload, jwtSecret, {
 		expiresIn: '1d',

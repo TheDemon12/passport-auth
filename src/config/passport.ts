@@ -7,7 +7,8 @@ import { getJwtSecretKey } from '../utils/jwt';
 const cookieExtractor = (
 	req: Request<{}, {}, { cookies?: { jwt?: string } }>
 ) => {
-	if (req && req.cookies) return req.cookies['jwt'].split(' ')[1];
+	if (req?.cookies && req.cookies['jwt'])
+		return req.cookies['jwt'].split(' ')[1];
 	else return null;
 };
 
@@ -21,7 +22,7 @@ const verifyCallback = async (
 	done: (err: any, user?: UserType | false) => void
 ) => {
 	try {
-		const user: UserType = await User.findById(jwtPayload.sub);
+		const user = await User.findById(jwtPayload.sub);
 		if (!user) return done(null, false);
 
 		return done(null, user);

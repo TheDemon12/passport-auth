@@ -1,13 +1,52 @@
 import mongoose from 'mongoose';
 
-const userSchema = new mongoose.Schema({
-	username: {
+export interface UserType {
+	id: string;
+	email: string;
+	name: string;
+	authType: 'google' | 'local';
+	hashedPassword?: string;
+	googleId?: string;
+	displayPicture?: string;
+	isAdmin?: boolean;
+}
+
+const userSchema = new mongoose.Schema<UserType>({
+	email: {
+		type: String,
+		required: true,
+	},
+	authType: {
 		type: String,
 		required: true,
 	},
 	hashedPassword: {
 		type: String,
+		//@ts-ignore
+		required: function () {
+			//@ts-ignore
+			return this.authType === 'local';
+		},
+	},
+	googleId: {
+		type: String,
+		//@ts-ignore
+		required: function () {
+			//@ts-ignore
+			return this.authType === 'google';
+		},
+	},
+	name: {
+		type: String,
 		required: true,
+	},
+	displayPicture: {
+		type: String,
+		//@ts-ignore
+		required: function () {
+			//@ts-ignore
+			return this.authType === 'google';
+		},
 	},
 	isAdmin: {
 		type: Boolean,
@@ -15,11 +54,4 @@ const userSchema = new mongoose.Schema({
 	},
 });
 
-export const User = mongoose.model('User', userSchema);
-
-export interface UserType {
-	id: string;
-	username: string;
-	hashedPassword: string;
-	isAdmin: boolean;
-}
+export const User = mongoose.model<UserType>('User', userSchema);

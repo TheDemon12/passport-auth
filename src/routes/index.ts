@@ -1,23 +1,22 @@
 import { Request, Response, Router } from 'express';
-import { User } from './../models/User';
+import { User, UserType } from './../models/User';
 import { generatePassword, validatePassword } from '../utils/password';
 import isAuth from '../middlewares/auth/isAuth';
 import isAdmin from '../middlewares/auth/isAdmin';
 import { generateJWT } from '../utils/jwt';
+import passport from 'passport';
 
 const router = Router();
 
 router.get('/', (req, res) => res.send('Api home'));
 
 router.post('/login', async (req, res) => {
-	const user = await User.findOne({ username: req.body.username });
+	const { email, password } = req.body;
 
+	const user = await User.findOne({ email, authType: 'local' });
 	if (!user) return res.status(401).send('Invalid Username Or Password');
 
-	const isValid = await validatePassword(
-		req.body.password,
-		user.hashedPassword
-	);
+	const isValid = await validatePassword(password, user.hashedPassword!);
 	if (!isValid) return res.status(401).send('Invalid Username Or Password');
 
 	const tokenObject = generateJWT(user);
@@ -26,26 +25,66 @@ router.post('/login', async (req, res) => {
 		.cookie('jwt', tokenObject.token, {
 			httpOnly: true,
 			maxAge: tokenObject.expires,
+			secure: true,
 		})
 		.send('logged in!');
 });
 
 router.post('/register', async (req, res) => {
-	const { username, password } = req.body;
+	const { name, email, password } = req.body;
 
-	const hashedPassword = generatePassword(password);
+	const user = await User.findOne({ email, authType: 'local' });
+	if (user) return res.status(400).send('User Already Registered!');
 
-	const user = new User({ username, hashedPassword });
-	await user.save();
+	const hashedPassword = await generatePassword(password);
 
-	return res.send('register done');
+	const newUser = new User({ name, email, authType: 'local', hashedPassword });
+	await newUser.save();
+
+	const tokenObject = generateJWT(newUser);
+
+	return res
+		.cookie('jwt', tokenObject.token, {
+			httpOnly: true,
+			maxAge: tokenObject.expires,
+			secure: true,
+		})
+		.send('user registered!');
 });
 
-router.get('/logout', (req, res) => {
-	if (!req.isAuthenticated()) return res.status(400).send('Not logged in!');
+router.get(
+	'/register/google',
+	passport.authenticate('google', {
+		session: false,
+		scope: ['profile', 'email'],
+	})
+);
+router.get(
+	'/auth/google/callback',
+	passport.authenticate('google', {
+		session: false,
+		failureRedirect: 'http://localhost:500/login',
+	}),
+	(req, res) => {
+		const user = req.user;
+		console.log(user);
+		if (user) {
+			//@ts-ignore
+			const tokenObject = generateJWT(user);
 
-	req.logout();
-	return res.status(200).send('Successfully logged out!');
+			return res
+				.cookie('jwt', tokenObject.token, {
+					httpOnly: true,
+					maxAge: tokenObject.expires,
+					secure: true,
+				})
+				.redirect('http://localhost:5500/');
+		}
+	}
+);
+
+router.get('/logout', isAuth, (req, res) => {
+	res.clearCookie('jwt').send('Logged out!');
 });
 
 router.get('/protected', isAuth, (req, res) => {

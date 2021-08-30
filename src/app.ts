@@ -8,6 +8,7 @@ import cors from 'cors';
 import { connectToDatabase } from './config/database';
 import routes from './routes';
 import './config/passport';
+import './config/passportGoogle';
 
 dotenv.config();
 
