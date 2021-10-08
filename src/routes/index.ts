@@ -14,10 +14,10 @@ router.post('/login', async (req, res) => {
 	const { email, password } = req.body;
 
 	const user = await User.findOne({ email, authType: 'local' });
-	if (!user) return res.status(401).send('Invalid Username Or Password');
+	if (!user) return res.status(401).send('Invalid Email or Password!');
 
 	const isValid = await validatePassword(password, user.hashedPassword!);
-	if (!isValid) return res.status(401).send('Invalid Username Or Password');
+	if (!isValid) return res.status(401).send('Invalid Email or Password!');
 
 	const tokenObject = generateJWT(user);
 
@@ -63,7 +63,7 @@ router.get(
 	'/auth/google/callback',
 	passport.authenticate('google', {
 		session: false,
-		failureRedirect: 'http://localhost:500/login',
+		failureRedirect: 'http://localhost:5000/login',
 	}),
 	(req, res) => {
 		const user = req.user;
@@ -78,7 +78,7 @@ router.get(
 					maxAge: tokenObject.expires,
 					secure: true,
 				})
-				.redirect('http://localhost:5500/');
+				.redirect('http://localhost:3000/');
 		}
 	}
 );
