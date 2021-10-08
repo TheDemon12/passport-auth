@@ -15,10 +15,10 @@ dotenv.config();
 const app = express();
 
 app.use(
-	cors({
-		credentials: true,
-		origin: 'http://localhost:5500',
-	})
+    cors({
+        credentials: true,
+        origin: ['http://localhost:3000/', 'http://192.168.0.109:3000/'],
+    })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -27,9 +27,9 @@ app.use(morgan('tiny'));
 
 connectToDatabase();
 app.use(passport.initialize());
-app.use(routes);
+app.use('/api', routes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-	console.log(`Server Running here 👉 https://localhost:${PORT}`);
+    console.log(Server Running here 👉 https://localhost:${PORT});
 });
